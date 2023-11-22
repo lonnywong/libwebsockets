@@ -1073,14 +1073,18 @@ lws_parse_ws(struct lws *wsi, unsigned char **buf, size_t len)
 			 * We already handled this byte in bulk, just deal
 			 * with the ramifications
 			 */
+			char already_processed = ALREADY_PROCESSED_IGNORE_CHAR | ALREADY_PROCESSED_NO_CB;
 #if !defined(LWS_WITHOUT_EXTENSIONS)
 			lwsl_debug("%s: coming out of bulk with len %d, "
 				   "wsi->ws->rx_draining_ext %d\n",
 				   __func__, (int)len,
 				   wsi->ws->rx_draining_ext);
+			if (lws_ssl_pending(wsi)) {
+				// drain all extensions iff there is ssl pending data
+				already_processed |= ALREADY_PROCESSED_FULL_DRAINING;
+			}
 #endif
-			m = lws_ws_rx_sm(wsi, ALREADY_PROCESSED_IGNORE_CHAR |
-					      ALREADY_PROCESSED_NO_CB | ALREADY_PROCESSED_FULL_DRAINING, 0);
+			m = lws_ws_rx_sm(wsi, already_processed, 0);
 		}
 
 		if (m < 0) {
